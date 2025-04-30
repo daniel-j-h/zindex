@@ -20,9 +20,16 @@ def main(args):
     # is a trade off where we prune to rough z ranges and add an
     # additional predicate on the bounding box as in
     #
-    #   WHERE (z BETWEEN lo AND hi AND lng BETWEEN lngmin AND lngmax)
+    #   WHERE (z BETWEEN lo AND hi
+    #          AND lng BETWEEN lngmin AND lngmax
+    #          AND lat BETWEEN latmin AND latmax)
     #
-    # to reduce the number of queries we need to make in total
+    # to reduce the number of queries we need to make in total.
+    #
+    # This is similar to the optimization in zbush to only compute
+    # BIGMIN and jump to it if the range of irrelevant data is large:
+    #
+    # https://github.com/daniel-j-h/zbush/blob/1bed328cc2788cd516d3fca7b0a546f6c27d9983/index.js#L144-L171
 
     points = duckdb.execute("""
         select lng, lat from 'berlin-latest-hydrants.parquet' where
