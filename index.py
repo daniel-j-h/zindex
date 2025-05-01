@@ -51,21 +51,16 @@ def main(args):
     ])
 
     table = pyarrow.Table.from_arrays([z, handler.lng, handler.lat], schema=schema)
-    table.sort_by("z")
+    table = table.sort_by("z")
 
-    # Open Question: Do we need multiple files for partitioning
-    # by a Z value prefix or is a single file with many row groups
-    # good enough? Related: How big should the row groups then be?
-    # What I found in the docs is that the WHERE predicate will get
-    # pushed down in the query to skip over row groups but we also
-    # don't want too many row groups because they're coming with
-    # their own overhead. We need to explore here or ask folks
-    # who understand parquet and duckdb a bit better than me
-    # spending two hours in my evening on this.
+    # Open question: Do we need to fine-tune the row group
+    # size and/or the page size below for our use case some
+    # more? We want to support rather local bounding box
+    # queries translating into a few linear range queries.
 
     pyarrow.parquet.write_table(table, args.out,
         sorting_columns=[pyarrow.parquet.SortingColumn(0)],
-        row_group_size=2**12)
+        data_page_size=2**16, row_group_size=2**20)
 
 
 if __name__ == "__main__":
