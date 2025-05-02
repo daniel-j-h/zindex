@@ -6,10 +6,33 @@ MAKEFLAGS += --no-builtin-rules
 .FEATURES: output-sync
 
 
+all:
+	@echo osm
+	@echo index
+	@echo query
+	@echo help
+	@echo clean
+
 .PHONY: osm
 osm:
-	@curl --proto '=https' --tlsv1.3 -sSfO https://download.geofabrik.de/europe/germany/berlin-latest.osm.pbf
+	curl --proto '=https' --tlsv1.3 -sSfO https://download.geofabrik.de/europe/germany/berlin-latest.osm.pbf
 
+.PHONY: index
+index:
+	python3 index.py berlin-latest.osm.pbf -o berlin-latest-hydrants.parquet
+
+.PHONY: query
+query:
+	python3 query.py #berlin-latest-hydrants.parquet
+
+.PHONY: help
+help:
+	@echo
+	@python3 index.py --help
+	@echo
+	@echo
+	@python3 query.py --help
+	@echo
 
 .PHONY: clean
 clean:

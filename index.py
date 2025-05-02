@@ -53,8 +53,8 @@ def main(args):
         zs.append(z32)
 
         # 32-bit unsigned fixed representation
-        lng32 = int((lng + 180) * 10000000)
-        lat32 = int((lat +  90) * 10000000)
+        lng32 = int((lng + 180) * ((2**32 - 1) / 360))
+        lat32 = int((lat +  90) * ((2**32 - 1) / 180))
         assert 0 <= lng32 <= 2**32-1
         assert 0 <= lat32 <= 2**32-1
 

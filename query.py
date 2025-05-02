@@ -94,10 +94,18 @@ def main(args):
     # benefits from the z sorting in addition to the row
     # group and data page information in the parquet file.
 
-    lngmin32 = int((args.lngmin + 180) * 10000000)
-    lngmax32 = int((args.lngmax + 180) * 10000000)
-    latmin32 = int((args.latmin + 90) * 10000000)
-    latmax32 = int((args.latmax + 90) * 10000000)
+    lngmin32 = int((args.lngmin + 180) * ((2**32 - 1) / 360))
+    lngmax32 = int((args.lngmax + 180) * ((2**32 - 1) / 360))
+    latmin32 = int((args.latmin +  90) * ((2**32 - 1) / 180))
+    latmax32 = int((args.latmax +  90) * ((2**32 - 1) / 180))
+
+    assert 0 <= lngmin32 <= 2**32-1
+    assert 0 <= lngmax32 <= 2**32-1
+    assert 0 <= latmin32 <= 2**32-1
+    assert 0 <= latmax32 <= 2**32-1
+
+    assert lngmin32 <= lngmax32
+    assert latmin32 <= latmax32
 
     points = duckdb.execute(f"""
         select
@@ -114,14 +122,15 @@ def main(args):
         assert lngmin32 <= lng32 <= lngmax32
         assert latmin32 <= lat32 <= latmax32
 
-        lng = round(lng32 / 10000000 - 180, 6)
-        lat = round(lat32 / 10000000 - 90, 6)
+        lng = round(lng32 / ((2**32 - 1) / 360) - 180, 6)
+        lat = round(lat32 / ((2**32 - 1) / 180) -  90, 6)
 
         print(f"point: {lng}, {lat}", file=sys.stderr)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
     parser.add_argument("--lngmin", type=float, default=13.4083)
     parser.add_argument("--latmin", type=float, default=52.5217)
     parser.add_argument("--lngmax", type=float, default=13.4115)
