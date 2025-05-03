@@ -70,15 +70,15 @@ def main(args):
     table = pyarrow.Table.from_arrays([zs, lngs, lats], schema=schema)
     table = table.sort_by("z")
 
-    # Open question: Do we need to fine-tune the row group
-    # size and/or the page size below for our use case some
-    # more? We want to support rather local bounding box
-    # queries translating into a few linear range queries.
-    #
-    # Open question: What about column encoding, compression
+    encoding = {
+        "z": "DELTA_BINARY_PACKED",
+        "lng": "DELTA_BINARY_PACKED",
+        "lat": "DELTA_BINARY_PACKED",
+    }
 
     pyarrow.parquet.write_table(table, args.out,
         sorting_columns=[pyarrow.parquet.SortingColumn(0)],
+        column_encoding=encoding, use_dictionary=False,
         data_page_size=2**16, row_group_size=2**20)
 
 
