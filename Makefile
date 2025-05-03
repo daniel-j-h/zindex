@@ -10,6 +10,7 @@ all:
 	@echo osm
 	@echo index
 	@echo query
+	@echo sh
 	@echo help
 	@echo clean
 
@@ -24,6 +25,10 @@ index:
 .PHONY: query
 query:
 	python3 query.py #berlin-latest-hydrants.parquet
+
+.PHONY: sh
+sh:
+	@docker run -it -v $(CURDIR):/data:z -w /data debian:bookworm-slim bash
 
 .PHONY: help
 help:
