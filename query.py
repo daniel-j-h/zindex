@@ -12,18 +12,18 @@ import duckdb
 import pyzorder
 
 
-def main(args):
+def query_bigmin(lngmin, latmin, lngmax, latmax):
     # See index.py: Z values are 32-bit on a 16-bit x,y-grid
     # in the parquet column. The full 32-bit lng, lat are
     # available in the lng, lat columns to use.
 
-    xmin16 = int((args.lngmin + 180) * ((2**16 - 1) / 360))
-    xmax16 = int((args.lngmax + 180) * ((2**16 - 1) / 360))
+    xmin16 = int((lngmin + 180) * ((2**16 - 1) / 360))
+    xmax16 = int((lngmax + 180) * ((2**16 - 1) / 360))
     assert 0 <= xmin16 <= 2**16-1
     assert 0 <= xmax16 <= 2**16-1
 
-    ymin16 = int((args.latmin +  90) * ((2**16 - 1) / 180))
-    ymax16 = int((args.latmax +  90) * ((2**16 - 1) / 180))
+    ymin16 = int((latmin +  90) * ((2**16 - 1) / 180))
+    ymax16 = int((latmax +  90) * ((2**16 - 1) / 180))
     assert 0 <= ymin16 <= 2**16-1
     assert 0 <= ymax16 <= 2**16-1
 
@@ -94,10 +94,71 @@ def main(args):
     # benefits from the z sorting in addition to the row
     # group and data page information in the parquet file.
 
-    lngmin32 = int((args.lngmin + 180) * ((2**32 - 1) / 360))
-    lngmax32 = int((args.lngmax + 180) * ((2**32 - 1) / 360))
-    latmin32 = int((args.latmin +  90) * ((2**32 - 1) / 180))
-    latmax32 = int((args.latmax +  90) * ((2**32 - 1) / 180))
+    lngmin32 = int((lngmin + 180) * ((2**32 - 1) / 360))
+    lngmax32 = int((lngmax + 180) * ((2**32 - 1) / 360))
+    latmin32 = int((latmin +  90) * ((2**32 - 1) / 180))
+    latmax32 = int((latmax +  90) * ((2**32 - 1) / 180))
+
+    assert 0 <= lngmin32 <= 2**32-1
+    assert 0 <= lngmax32 <= 2**32-1
+    assert 0 <= latmin32 <= 2**32-1
+    assert 0 <= latmax32 <= 2**32-1
+
+    assert lngmin32 <= lngmax32
+    assert latmin32 <= latmax32
+
+    points = duckdb.execute(f"""
+        select
+          lng, lat
+        from
+          'berlin-latest-hydrants.parquet'
+        where
+          z in ({','.join(map(str, zs))})
+          and lng between {lngmin32} and {lngmax32}
+          and lat between {latmin32} and {latmax32};
+        """).fetchall()
+
+    for lng32, lat32 in points:
+        assert lngmin32 <= lng32 <= lngmax32
+        assert latmin32 <= lat32 <= latmax32
+
+        lng = round(lng32 / ((2**32 - 1) / 360) - 180, 6)
+        lat = round(lat32 / ((2**32 - 1) / 180) -  90, 6)
+
+        print(f"point: {lng}, {lat}", file=sys.stderr)
+
+
+def query_simple(lngmin, latmin, lngmax, latmax):
+    # Note: see range_bigmin for comments and explanation
+    # below is a simple version iterting over the bounding
+    # box in 2d on a coarse 16-bit grid.
+
+    xmin16 = int((lngmin + 180) * ((2**16 - 1) / 360))
+    xmax16 = int((lngmax + 180) * ((2**16 - 1) / 360))
+    assert 0 <= xmin16 <= 2**16-1
+    assert 0 <= xmax16 <= 2**16-1
+
+    ymin16 = int((latmin +  90) * ((2**16 - 1) / 180))
+    ymax16 = int((latmax +  90) * ((2**16 - 1) / 180))
+    assert 0 <= ymin16 <= 2**16-1
+    assert 0 <= ymax16 <= 2**16-1
+
+    assert xmin16 <= xmax16
+    assert ymin16 <= ymax16
+
+    zs = []
+
+    for x16 in range(xmin16, xmax16 + 1):
+        for y16 in range(ymin16, ymax16 + 1):
+            z32 = pyzorder.pymorton.interleave(x16, y16)
+            assert 0 <= z32 <= 2**32-1
+
+            zs.append(z32)
+
+    lngmin32 = int((lngmin + 180) * ((2**32 - 1) / 360))
+    lngmax32 = int((lngmax + 180) * ((2**32 - 1) / 360))
+    latmin32 = int((latmin +  90) * ((2**32 - 1) / 180))
+    latmax32 = int((latmax +  90) * ((2**32 - 1) / 180))
 
     assert 0 <= lngmin32 <= 2**32-1
     assert 0 <= lngmax32 <= 2**32-1
@@ -136,4 +197,7 @@ if __name__ == "__main__":
     parser.add_argument("--lngmax", type=float, default=13.4115)
     parser.add_argument("--latmax", type=float, default=52.5234)
 
-    main(parser.parse_args())
+    args = parser.parse_args()
+
+    query_simple(args.lngmin, args.latmin, args.lngmax, args.latmax)
+    #query_bigmin(args.lngmin, args.latmin, args.lngmax, args.latmax)
