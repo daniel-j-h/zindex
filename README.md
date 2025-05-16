@@ -1,6 +1,6 @@
 # ZIndex
 
-Proof of concept for a very fast cloud-native static spatial index for 2D points based on a Z-Order space filling curve and BIGMIN search space pruning.
+A very fast cloud-native static spatial index for 2D points based on a Z-Order space filling curve and BIGMIN search space pruning.
 
 - See the `index.py` file for creating the .parquet file from an .osm.pbf file
 - See the `query.py` file as an example for querying the .parquet file
@@ -10,13 +10,20 @@ Thanks to [Marco Neumann](https://github.com/crepererum) helping me understand P
 
 ## Usage
 
-I have generated the file `berlin-latest-hydrants.parquet` and have a GitHub Page serve it
+To index
 
 ```bash
 python3 index.py berlin-latest.osm.pbf -o berlin-latest-hydrants.parquet
 ```
 
-This means we can make queries against the remotely Parquet file with DuckDB
+To query
+
+```bash
+python3 query.py
+```
+
+I have generated the file `berlin-latest-hydrants.parquet` and have a GitHub Page serve it
+This means we can make queries against the statically hosted remote Parquet file with DuckDB
 
 ```sql
 SELECT
